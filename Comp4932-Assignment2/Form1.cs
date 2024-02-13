@@ -151,9 +151,11 @@ namespace Comp4932_Assignment2
                 {
                     string savePath = saveFileDialog.FileName;
 
-                    byte[] dimensios = new byte[2];
-                    dimensios[0] = (byte)width;
-                    dimensios[1] = (byte)height;
+                    byte[] dimensios = new byte[4];
+                    dimensios[0] = (byte)(width >> 8);
+                    dimensios[1] = (byte)(width & 0xFF);
+                    dimensios[2] = (byte)(height >> 8);
+                    dimensios[3] = (byte)(height & 0xFF);
 
                     // Concatenate all the bytes into a single byte array
                     byte[] concatenatedBytes = ConcatenateBytes(dimensios, y, cb, cr);
@@ -206,10 +208,12 @@ namespace Comp4932_Assignment2
 
         private void ReadArray(byte[] data)
         {
-            int width = data[0];
-            int height = data[1];
+            // Zero at the moment
+            int width = data[0] << 8 | data[1];   // Retrieve width from the stored bytes
+            int height = data[2] << 8 | data[3];  // Retrieve height from the stored bytes
 
             double[,] Y = new double[width, height];
+            int test= data.Length;
 
             int Subsampledwidth = (int)Math.Ceiling(Y.GetLength(0) / 2.0);
             int Subsampledheight = (int)Math.Ceiling(Y.GetLength(1) / 2.0);
@@ -217,33 +221,28 @@ namespace Comp4932_Assignment2
             double[,] Subsampledcb = new double[Subsampledwidth, Subsampledheight];
             double[,] Subsampledcr = new double[Subsampledwidth, Subsampledheight];
 
-            int index1 = 2;
+            int index = 4;
             for (int y1 = 0;  y1 < height; y1++)
             {
                 for (int x1= 0; x1 < height; x1++)
                 {
-                    Y[x1,y1] = data[index1];
-                    index1++;
+                    Y[x1,y1] = data[index++];
                 }
             }
 
-            int index2 = index1;
-            for (int y2 = 0; y2 < height; y2++)
+            for (int y2 = 0; y2 < height/2; y2++)
             {
-                for (int x2= 0; x2 < width; x2++)
+                for (int x2= 0; x2 < width/2; x2++)
                 {
-                    Subsampledcb[x2, y2] = data[index2];
-                    index2++;
+                    Subsampledcb[x2, y2] = data[index++];
                 }
             }
 
-            int index3 = index2;
-            for (int y3 = 0; y3 < height; y3++)
+            for (int y3 = 0; y3 < height/2; y3++)
             {
-                for (int x3 = 0; x3 < width; x3++)
+                for (int x3 = 0; x3 < width/2; x3++)
                 {
-                    Subsampledcr[x3, y3] = data[index3];
-                    index3++;
+                    Subsampledcr[x3, y3] = data[index++];
                 }
             }
 
@@ -266,7 +265,7 @@ namespace Comp4932_Assignment2
                 for (int x = 0; x < width/2; x++)
                 {
                     result[counterx, countery] = data[x,y];
-                    result[counterx, y++] = data[x,y];
+                    result[counterx, countery++] = data[x,y];
                     result[counterx++, countery] = data[x, y];
                     result[counterx++, countery++] = data[x,y];
                     counterx += 2;
