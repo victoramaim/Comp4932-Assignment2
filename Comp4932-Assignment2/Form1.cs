@@ -265,9 +265,9 @@ namespace Comp4932_Assignment2
                 for (int x = 0; x < width/2; x++)
                 {
                     result[counterx, countery] = data[x,y];
-                    result[counterx, countery++] = data[x,y];
-                    result[counterx++, countery] = data[x, y];
-                    result[counterx++, countery++] = data[x,y];
+                    result[counterx, countery + 1] = data[x,y];
+                    result[counterx + 1, countery] = data[x, y];
+                    result[counterx + 1, countery + 1] = data[x,y];
                     counterx += 2;
                 }
                 countery += 2;
@@ -291,9 +291,9 @@ namespace Comp4932_Assignment2
                     b = (ReverseConversionMatrix[2,0] * (Y[x,y] - biasVector[0]) + (ReverseConversionMatrix[2,1] * (cb[x,y] - biasVector[1])) + (ReverseConversionMatrix[2,2] * (cr[x,y] - biasVector[2])));
 
                     // Clamp the RGB values to 0-255
-                    int red = (int)Math.Max(0, Math.Min(255, r));
-                    int green = (int)Math.Max(0, Math.Min(255, g));
-                    int blue = (int)Math.Max(0, Math.Min(255, b));
+                    r= (int)Math.Max(0, Math.Min(255, r));
+                    g = (int)Math.Max(0, Math.Min(255, g));
+                    b = (int)Math.Max(0, Math.Min(255, b));
 
                     Color pixel = Color.FromArgb((int)r, (int)g, (int)b);
                     bitmap.SetPixel(x,y,pixel);
@@ -308,7 +308,7 @@ namespace Comp4932_Assignment2
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Title = "Save YCrCb Image";
-                saveFileDialog.Filter = "YCrCb Image|*.test|All files|*.*";
+                saveFileDialog.Filter = "YCrCb Image|*.bmp|All files|*.*";
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
