@@ -15,20 +15,20 @@ namespace Comp4932_Assignment2
         protected Bitmap? displayImage;
         protected Bitmap? originalImage;
 
-        private static double[,] conversionMatrix = new double[,]
+        private static double[,] conversionMatrix = 
         {
-            {65.481, 128.553, 24.966},
-            {-37.797, -74.203, 112},
-             {112, -93.786, -18.214}
+            { 0.299, 0.587, 0.114 },
+            { -0.168736, -0.331264, 0.5 },
+            { 0.5, -0.418688, -0.081312 }
         };
 
         private static double[,] ReverseConversionMatrix = {
-            { 0.00456621, 0.0000, 0.00625893 },
-            { 0.00456621, -0.00153632, -0.00318811 },
-            { 0.00456621, 0.00791071, 0.0000 }
+            { 1, 0, 1.4 },
+            { 1, -0.343, -0.711 },
+            { 1, 1.765, 0 }
         };
 
-        private static double[] biasVector = new double[] { 16, 128, 128 };
+        private static int biasVector = 128;
 
         public Form1()
         {
@@ -104,18 +104,18 @@ namespace Comp4932_Assignment2
                     double g = pixel.G;
                     double b = pixel.B;
 
-                    Y[x, y] = (conversionMatrix[0, 0] * r + conversionMatrix[0, 1] * g + conversionMatrix[0, 2] * b + biasVector[0]);
-                    Cb[x, y] = conversionMatrix[1, 0] * r + conversionMatrix[1, 1] * g + conversionMatrix[1, 2] * b + biasVector[1];
-                    Cr[x, y] = conversionMatrix[2, 0] * r + conversionMatrix[2, 1] * g + conversionMatrix[2, 2] * b + biasVector[2];
+                    Y[x, y] = conversionMatrix[0, 0] * r + conversionMatrix[0, 1] * g + conversionMatrix[0, 2] * b;
+                    Cb[x, y] = conversionMatrix[1, 0] * r + conversionMatrix[1, 1] * g + conversionMatrix[1, 2] * b + biasVector;
+                    Cr[x, y] = conversionMatrix[2, 0] * r + conversionMatrix[2, 1] * g + conversionMatrix[2, 2] * b + biasVector;
                 }
             }
 
-            double[,] CbSubsampled = Subsampling(Cb);
-            double[,] CrSubsampled = Subsampling(Cr);
+            Cb = Subsampling(Cb);
+            Cr = Subsampling(Cr);
 
             byte[] YResult = ConvertToByteArray(Y);
-            byte[] CbResult = ConvertToByteArray(CbSubsampled);
-            byte[] CrResult = ConvertToByteArray(CrSubsampled);
+            byte[] CbResult = ConvertToByteArray(Cb);
+            byte[] CrResult = ConvertToByteArray(Cr);
 
             WriteToFile(width, height, YResult, CbResult, CrResult);
         }
@@ -286,14 +286,14 @@ namespace Comp4932_Assignment2
             {
                 for (int x = 0; x < width; x++)
                 {
-                    r = (ReverseConversionMatrix[0,0] * (Y[x,y] - biasVector[0]) + (ReverseConversionMatrix[0,1] * (cb[x,y] - biasVector[1])) + (ReverseConversionMatrix[0,2] * (cr[x,y] - biasVector[2])));
-                    g = (ReverseConversionMatrix[1,0] * (Y[x,y] - biasVector[0]) + (ReverseConversionMatrix[1,1] * (cb[x,y] - biasVector[1])) + (ReverseConversionMatrix[1,2] * (cr[x,y] - biasVector[2])));
-                    b = (ReverseConversionMatrix[2,0] * (Y[x,y] - biasVector[0]) + (ReverseConversionMatrix[2,1] * (cb[x,y] - biasVector[1])) + (ReverseConversionMatrix[2,2] * (cr[x,y] - biasVector[2])));
+                    r = ReverseConversionMatrix[0,0] * Y[x,y] + ReverseConversionMatrix[0,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[0,2] * (cr[x,y] - biasVector);
+                    g = ReverseConversionMatrix[1,0] * Y[x,y] + ReverseConversionMatrix[1,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[1,2] * (cr[x,y] - biasVector);
+                    b = ReverseConversionMatrix[2,0] * Y[x,y] + ReverseConversionMatrix[2,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[2,2] * (cr[x,y] - biasVector);
 
                     // Clamp the RGB values to 0-255
-                    r= (int)Math.Max(0, Math.Min(255, r));
-                    g = (int)Math.Max(0, Math.Min(255, g));
-                    b = (int)Math.Max(0, Math.Min(255, b));
+                    r = Math.Max(0, Math.Min(255, r));
+                    g = Math.Max(0, Math.Min(255, g));
+                    b = Math.Max(0, Math.Min(255, b));
 
                     Color pixel = Color.FromArgb((int)r, (int)g, (int)b);
                     bitmap.SetPixel(x,y,pixel);
@@ -319,6 +319,5 @@ namespace Comp4932_Assignment2
                 }
             }
         }
-
     }
 }
