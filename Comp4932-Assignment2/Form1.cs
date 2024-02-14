@@ -178,18 +178,6 @@ namespace Comp4932_Assignment2
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string savePath = saveFileDialog.FileName;
-
-                    /*byte[] dimensios = new byte[4];
-                    dimensios[0] = (byte)(width >> 8);
-                    dimensios[1] = (byte)(width & 0xFF);
-                    dimensios[2] = (byte)(height >> 8);
-                    dimensios[3] = (byte)(height & 0xFF);
-
-                    // Concatenate all the bytes into a single byte array
-                    byte[] concatenatedBytes = ConcatenateBytes(dimensios, y, cb, cr);
-
-                    // Write the concatenated bytes to the file
-                    File.WriteAllBytes(savePath, concatenatedBytes);*/
                     File.WriteAllBytes(savePath, array);
                 }
             }
