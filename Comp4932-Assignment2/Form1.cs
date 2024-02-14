@@ -15,6 +15,7 @@ namespace Comp4932_Assignment2
         protected Bitmap? displayImage;
         protected Bitmap? originalImage;
 
+        // Matrix used for the compression
         private static readonly double[,] forwardMatrix = 
         {
             { 0.299, 0.587, 0.114 },
@@ -22,6 +23,7 @@ namespace Comp4932_Assignment2
             { 0.5, -0.418688, -0.081312 }
         };
 
+        // Matrix used for the decompression
         private static readonly double[,] backwardMatrix = {
             { 1, 0, 1.4 },
             { 1, -0.343, -0.711 },
@@ -51,6 +53,7 @@ namespace Comp4932_Assignment2
 
         }
 
+        // Resize the Bitmap to the window size
         private Bitmap ResizeBitmap(Bitmap originalBitmap, int width, int height)
         {
             Bitmap resizedBitmap = new Bitmap(width, height);
@@ -79,6 +82,7 @@ namespace Comp4932_Assignment2
             }
         }
 
+        // Convert the RGB to YCrCb
         private void rGBToYCrCbToolStripMenuItem_Click(object sender, EventArgs e)
         {
             RGBtoYCrCb(originalImage);
@@ -143,14 +147,9 @@ namespace Comp4932_Assignment2
             }
 
             WriteToFile(data);
-
-            byte[] YResult = ConvertToByteArray(Y);
-            byte[] CbResult = ConvertToByteArray(Cb);
-            byte[] CrResult = ConvertToByteArray(Cr);
-
-            //WriteToFile(width, height, YResult, CbResult, CrResult);
         }
 
+        // Subample for both Cr and Cb
         private double[,] Subsampling(double[,] arr)
         {
             int width = (int)Math.Ceiling(arr.GetLength(0) / 2.0);
@@ -167,13 +166,13 @@ namespace Comp4932_Assignment2
             return array;
         }
 
-        //private void WriteToFile(int width, int height, byte[] y, byte[] cb, byte[] cr)
+        // Save the compressed array to a custom file
         private void WriteToFile(byte[] array)
         {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
                 saveFileDialog.Title = "Save YCrCb Image";
-                saveFileDialog.Filter = "YCrCb Image|*.test|All files|*.*";
+                saveFileDialog.Filter = "YCrCb Image|*.victor|All files|*.*";
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -183,37 +182,13 @@ namespace Comp4932_Assignment2
             }
         }
 
-        // Helper method to convert a 2D array to a byte array
-        private byte[] ConvertToByteArray(double[,] array)
-        {
-            int width = array.GetLength(0);
-            int heigth = array.GetLength(1);
-            byte[] byteArray = new byte[width * heigth];
-
-            Buffer.BlockCopy(array, 0, byteArray, 0, byteArray.Length);
-            return byteArray;
-        }
-
-        // Helper method to concatenate multiple byte arrays
-        private byte[] ConcatenateBytes(params byte[][] arrays)
-        {
-            int totalLength = arrays.Sum(arr => arr.Length);
-            byte[] result = new byte[totalLength];
-            int offset = 0;
-            foreach (var arr in arrays)
-            {
-                Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
-                offset += arr.Length;
-            }
-            return result;
-        }
-
+        //Open the custom file to decompress
         private void yCrCbToRBGToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
                 openFileDialog.Title = "Open File";
-                openFileDialog.Filter = "Image Files|*.test|All files|*.*";
+                openFileDialog.Filter = "Image Files|*.victor|All files|*.*";
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -223,9 +198,9 @@ namespace Comp4932_Assignment2
             }
         }
 
+        // Read the custom file
         private void ReadArray(byte[] data)
         {
-            // Zero at the moment
             int width = data[0] << 8 | data[1];   // Retrieve width from the stored bytes
             int height = data[2] << 8 | data[3];  // Retrieve height from the stored bytes
 
@@ -268,6 +243,7 @@ namespace Comp4932_Assignment2
             YCrCbtoRGB(width, height, Y, Cb, Cr);
         }
 
+        // Upsample the compressed Cr and Cb
         private double[,] Upsample(double[,] data)
         {
             int width = data.GetLength(0) * 2;
@@ -291,6 +267,7 @@ namespace Comp4932_Assignment2
             return result;
         }
 
+        // Convert the compressed data to a picture (Bitmap)
         private Bitmap YCrCbtoRGB (int width, int height, double[,] Y, double[,] Cb, double[,] Cr)
         {
             Bitmap bitmap = new Bitmap(width, height);
@@ -316,6 +293,7 @@ namespace Comp4932_Assignment2
             return bitmap;
         }
 
+        // Save the decompressed picture (Bitmap)
         private void SaveBitmap(Bitmap bitmap)
         {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
@@ -326,8 +304,6 @@ namespace Comp4932_Assignment2
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string savePath = saveFileDialog.FileName;
-
-                    // Write the concatenated bytes to the file
                     bitmap.Save(savePath);
                 }
             }
