@@ -15,14 +15,14 @@ namespace Comp4932_Assignment2
         protected Bitmap? displayImage;
         protected Bitmap? originalImage;
 
-        private static double[,] conversionMatrix = 
+        private static readonly double[,] forwardMatrix = 
         {
             { 0.299, 0.587, 0.114 },
             { -0.168736, -0.331264, 0.5 },
             { 0.5, -0.418688, -0.081312 }
         };
 
-        private static double[,] ReverseConversionMatrix = {
+        private static readonly double[,] backwardMatrix = {
             { 1, 0, 1.4 },
             { 1, -0.343, -0.711 },
             { 1, 1.765, 0 }
@@ -89,6 +89,7 @@ namespace Comp4932_Assignment2
         {
             int width = rgbImage.Width;
             int height = rgbImage.Height;
+            byte[] data = new byte[(int)(width * height * 1.5F + 4 + 3)];
 
             double[,] Y = new double[width, height];
             double[,] Cb = new double[width, height];
@@ -104,20 +105,50 @@ namespace Comp4932_Assignment2
                     double g = pixel.G;
                     double b = pixel.B;
 
-                    Y[x, y] = conversionMatrix[0, 0] * r + conversionMatrix[0, 1] * g + conversionMatrix[0, 2] * b;
-                    Cb[x, y] = conversionMatrix[1, 0] * r + conversionMatrix[1, 1] * g + conversionMatrix[1, 2] * b + biasVector;
-                    Cr[x, y] = conversionMatrix[2, 0] * r + conversionMatrix[2, 1] * g + conversionMatrix[2, 2] * b + biasVector;
+                    Y[x, y] = forwardMatrix[0, 0] * r + forwardMatrix[0, 1] * g + forwardMatrix[0, 2] * b;
+                    Cb[x, y] = forwardMatrix[1, 0] * r + forwardMatrix[1, 1] * g + forwardMatrix[1, 2] * b + biasVector;
+                    Cr[x, y] = forwardMatrix[2, 0] * r + forwardMatrix[2, 1] * g + forwardMatrix[2, 2] * b + biasVector;
                 }
             }
 
             Cb = Subsampling(Cb);
             Cr = Subsampling(Cr);
 
+            int i = 0;
+            data[i++] = (byte)(width >> 8);     // Store the most significant byte of width
+            data[i++] = (byte)(width & 0xFF);   // Store the least significant byte of width
+            data[i++] = (byte)(height >> 8);    // Store the most significant byte of height
+            data[i++] = (byte)(height & 0xFF);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    data[i++] = (byte)(Y[x, y]);
+                }
+            }
+            for (int y = 0; y < height / 2; y++)
+            {
+                for (int x = 0; x < width / 2; x++)
+                {
+                    data[i++] = (byte)(Cb[x, y]);
+                }
+            }
+            for (int y = 0; y < height / 2; y++)
+            {
+                for (int x = 0; x < width / 2; x++)
+                {
+                    data[i++] = (byte)(Cr[x, y]);
+                }
+            }
+
+            WriteToFile(data);
+
             byte[] YResult = ConvertToByteArray(Y);
             byte[] CbResult = ConvertToByteArray(Cb);
             byte[] CrResult = ConvertToByteArray(Cr);
 
-            WriteToFile(width, height, YResult, CbResult, CrResult);
+            //WriteToFile(width, height, YResult, CbResult, CrResult);
         }
 
         private double[,] Subsampling(double[,] arr)
@@ -125,22 +156,19 @@ namespace Comp4932_Assignment2
             int width = (int)Math.Ceiling(arr.GetLength(0) / 2.0);
             int height = (int)Math.Ceiling(arr.GetLength(1) / 2.0);
             double[,] array = new double[width, height];
-            int counterx = 0;
-            int countery = 0;
-            for (int y = 0; y < arr.GetLength(1); y += 2)
+
+            for (int y = 0; y < height; y ++)
             {
-                for (int x = 0; x < arr.GetLength(0); x += 2)
+                for (int x = 0; x < width; x ++)
                 {
-                    array[counterx, countery] = arr[x, y];
-                    counterx++;
+                    array[x, y] = arr[x * 2, y * 2];
                 }
-                counterx = 0;
-                countery++;
             }
             return array;
         }
 
-        private void WriteToFile(int width, int height, byte[] y, byte[] cb, byte[] cr)
+        //private void WriteToFile(int width, int height, byte[] y, byte[] cb, byte[] cr)
+        private void WriteToFile(byte[] array)
         {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
             {
@@ -151,7 +179,7 @@ namespace Comp4932_Assignment2
                 {
                     string savePath = saveFileDialog.FileName;
 
-                    byte[] dimensios = new byte[4];
+                    /*byte[] dimensios = new byte[4];
                     dimensios[0] = (byte)(width >> 8);
                     dimensios[1] = (byte)(width & 0xFF);
                     dimensios[2] = (byte)(height >> 8);
@@ -161,7 +189,8 @@ namespace Comp4932_Assignment2
                     byte[] concatenatedBytes = ConcatenateBytes(dimensios, y, cb, cr);
 
                     // Write the concatenated bytes to the file
-                    File.WriteAllBytes(savePath, concatenatedBytes);
+                    File.WriteAllBytes(savePath, concatenatedBytes);*/
+                    File.WriteAllBytes(savePath, array);
                 }
             }
         }
@@ -213,41 +242,40 @@ namespace Comp4932_Assignment2
             int height = data[2] << 8 | data[3];  // Retrieve height from the stored bytes
 
             double[,] Y = new double[width, height];
-            int test= data.Length;
 
             int Subsampledwidth = (int)Math.Ceiling(Y.GetLength(0) / 2.0);
             int Subsampledheight = (int)Math.Ceiling(Y.GetLength(1) / 2.0);
 
-            double[,] Subsampledcb = new double[Subsampledwidth, Subsampledheight];
-            double[,] Subsampledcr = new double[Subsampledwidth, Subsampledheight];
+            double[,] Cb = new double[Subsampledwidth, Subsampledheight];
+            double[,] Cr = new double[Subsampledwidth, Subsampledheight];
 
             int index = 4;
-            for (int y1 = 0;  y1 < height; y1++)
+            for (int y = 0;  y < height; y++)
             {
-                for (int x1= 0; x1 < height; x1++)
+                for (int x= 0; x < height; x++)
                 {
-                    Y[x1,y1] = data[index++];
+                    Y[x,y] = data[index++];
                 }
             }
 
-            for (int y2 = 0; y2 < height/2; y2++)
+            for (int y = 0; y < height/2; y++)
             {
-                for (int x2= 0; x2 < width/2; x2++)
+                for (int x = 0; x < width/2; x++)
                 {
-                    Subsampledcb[x2, y2] = data[index++];
+                    Cb[x, y] = data[index++];
                 }
             }
 
-            for (int y3 = 0; y3 < height/2; y3++)
+            for (int y = 0; y < height/2; y++)
             {
-                for (int x3 = 0; x3 < width/2; x3++)
+                for (int x = 0; x < width/2; x++)
                 {
-                    Subsampledcr[x3, y3] = data[index++];
+                    Cr[x, y] = data[index++];
                 }
             }
 
-            double[,] Cb = Upsample(Subsampledcb);
-            double[,] Cr = Upsample(Subsampledcr);
+            Cb = Upsample(Cb);
+            Cr = Upsample(Cr);
 
             YCrCbtoRGB(width, height, Y, Cb, Cr);
         }
@@ -275,20 +303,17 @@ namespace Comp4932_Assignment2
             return result;
         }
 
-        private Bitmap YCrCbtoRGB (int width, int height, double[,] Y, double[,] cb, double[,] cr)
+        private Bitmap YCrCbtoRGB (int width, int height, double[,] Y, double[,] Cb, double[,] Cr)
         {
             Bitmap bitmap = new Bitmap(width, height);
-            double r;
-            double g;
-            double b;
 
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    r = ReverseConversionMatrix[0,0] * Y[x,y] + ReverseConversionMatrix[0,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[0,2] * (cr[x,y] - biasVector);
-                    g = ReverseConversionMatrix[1,0] * Y[x,y] + ReverseConversionMatrix[1,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[1,2] * (cr[x,y] - biasVector);
-                    b = ReverseConversionMatrix[2,0] * Y[x,y] + ReverseConversionMatrix[2,1] * (cb[x,y] - biasVector) + ReverseConversionMatrix[2,2] * (cr[x,y] - biasVector);
+                    double r = backwardMatrix[0,0] * Y[x,y] + backwardMatrix[0,1] * (Cb[x,y] - biasVector) + backwardMatrix[0,2] * (Cr[x,y] - biasVector);
+                    double g = backwardMatrix[1,0] * Y[x,y] + backwardMatrix[1,1] * (Cb[x,y] - biasVector) + backwardMatrix[1,2] * (Cr[x,y] - biasVector);
+                    double b = backwardMatrix[2,0] * Y[x,y] + backwardMatrix[2,1] * (Cb[x,y] - biasVector) + backwardMatrix[2,2] * (Cr[x,y] - biasVector);
 
                     // Clamp the RGB values to 0-255
                     r = Math.Max(0, Math.Min(255, r));
